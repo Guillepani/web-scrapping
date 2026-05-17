@@ -1,0 +1,24 @@
+{
+  "name": "web-scrapping",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Guillepani/web-scrapping.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Guillepani/web-scrapping/issues"
+  },
+  "homepage": "https://github.com/Guillepani/web-scrapping#readme",
+  "dependencies": {
+    "puppeteer": "^25.0.2"
+  }
+}
