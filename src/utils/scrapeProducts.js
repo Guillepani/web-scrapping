@@ -15,6 +15,15 @@ const scrapeProducts = async () => {
   while (currentPage) {
     await page.goto(currentPage);
 
+    /* Ejemplo de eliminación de modales o cookies si la web los tuviera
+     En Books To Scrape no existen
+
+     const closeModalButton = await page.$(".modal-button");
+
+     if (closeModalButton) {
+       await closeModalButton.click();
+     } */
+
     const products = await page.evaluate(() => {
       const articles = document.querySelectorAll(".product_pod");
 
