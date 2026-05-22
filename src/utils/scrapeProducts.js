@@ -2,74 +2,123 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 
 const scrapeProducts = async () => {
-  const browser = await puppeteer.launch({
-    headless: true
-  });
+  let browser;
 
-  const page = await browser.newPage();
+  try {
+    console.log("Iniciando scraper...");
 
-  let allProducts = [];
-
-  let currentPage = "https://books.toscrape.com";
-
-  while (currentPage) {
-    await page.goto(currentPage);
-
-    /* Ejemplo de eliminación de modales o cookies si la web los tuviera
-     En Books To Scrape no existen
-
-     const closeModalButton = await page.$(".modal-button");
-
-     if (closeModalButton) {
-       await closeModalButton.click();
-     } */
-
-    const products = await page.evaluate(() => {
-      const articles = document.querySelectorAll(".product_pod");
-
-      const productsArray = [];
-
-      for (const article of articles) {
-        const name = article.querySelector("h3 a").title;
-
-        const price = article.querySelector(".price_color").textContent;
-
-        const image = article.querySelector("img").src;
-
-        productsArray.push({
-          name,
-          price,
-          image
-        });
-      }
-
-      return productsArray;
+    browser = await puppeteer.launch({
+      headless: true
     });
 
-    allProducts = [...allProducts, ...products];
+    const page = await browser.newPage();
 
-    const nextButton = await page.$(".next a");
+    await page.goto("https://www.combatarena.es", {
+      waitUntil: "domcontentloaded"
+    });
 
-    if (nextButton) {
-      const nextPage = await page.evaluate(
-        (button) => button.getAttribute("href"),
-        nextButton
+    console.log("Página principal cargada");
+
+    const cookiesButton = await page.$("#cm_primary_btn");
+
+    if (cookiesButton) {
+      await page.click("#cm_primary_btn");
+
+      console.log("Banner de cookies cerrado");
+    }
+
+    const baseUrl =
+      "https://www.combatarena.es/collections/guantes-de-boxeo?page=";
+
+    let allProducts = [];
+
+    let pageNumber = 1;
+
+    let hasMorePages = true;
+
+    while (hasMorePages) {
+      const currentPage = `${baseUrl}${pageNumber}`;
+
+      console.log(`Scrapeando página ${pageNumber}...`);
+
+      await page.goto(currentPage, {
+        waitUntil: "domcontentloaded"
+      });
+
+      const cookiesButton = await page.$("#cm_primary_btn");
+
+      if (cookiesButton) {
+        await page.click("#cm_primary_btn");
+
+        console.log("Banner de cookies cerrado");
+      }
+
+      const products = await page.evaluate(() => {
+        const cards = document.querySelectorAll(".product-card");
+
+        const productsArray = [];
+
+        for (const card of cards) {
+          const name =
+            card.querySelector(".product-title")?.textContent.trim() ||
+            "Sin nombre";
+
+          const price =
+            card
+              .querySelector("[data-card-price]")
+              ?.textContent.trim() || "Sin precio";
+
+          const image =
+            card.querySelector("img")?.src || "Sin imagen";
+
+          productsArray.push({
+            name,
+            price,
+            image
+          });
+        }
+
+        return productsArray;
+      });
+
+      console.log(
+        `${products.length} productos encontrados en página ${pageNumber}`
       );
 
-      currentPage = new URL(nextPage, currentPage).href;
-    } else {
-      currentPage = null;
+      if (products.length === 0) {
+        console.log("No hay más productos");
+
+        hasMorePages = false;
+      } else {
+        allProducts = [...allProducts, ...products];
+
+        console.log("Pasando a la siguiente página...");
+
+        pageNumber++;
+      }
+    }
+
+    fs.writeFileSync(
+      "products.json",
+      JSON.stringify(allProducts, null, 2)
+    );
+
+    console.log(
+      `JSON generado correctamente con ${allProducts.length} productos`
+    );
+
+    await browser.close();
+
+    console.log("Navegador cerrado");
+  } catch (error) {
+    console.error("Error durante el scraping:", error);
+
+    if (browser) {
+      await browser.close();
+
+      console.log("Navegador cerrado tras error");
     }
   }
-
-  fs.writeFileSync(
-    "products.json",
-    JSON.stringify(allProducts, null, 2)
-  );
-
-  console.log("JSON generado correctamente");
-
-  await browser.close();
 };
 
 module.exports = scrapeProducts;
